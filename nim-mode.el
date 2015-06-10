@@ -1112,6 +1112,23 @@ hierarchy, starting from CURRENT-DIR"
                     (goto-char (point-min))
                     (forward-line (1- (nim-epc-line def)))))))
 
+;; call signature
+(defun nim-call-signature ()
+  "Return call signature of current function for context at point."
+  (interactive)
+  (nim-call-epc 'def
+                (lambda (sigs)
+                  (let ((sig (first sigs)))
+                    (when sig
+                      (nim-call-signature-format-minibuffer sig))))))
+
+
+(defun nim-call-signature-format-minibuffer (sig)
+  (let ((name (car (last (nim-epc-qualifiedPath sig))))
+        (args (substring (nim-epc-forth sig) 5)))
+    (message "%s%s" (car (last (nim-epc-qualifiedPath sig))) args)))
+
+
 ;; compilation error
 (eval-after-load 'compile
   '(progn
