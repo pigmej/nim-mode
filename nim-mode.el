@@ -1115,11 +1115,12 @@ hierarchy, starting from CURRENT-DIR"
 (defun nim-call-signature ()
   "Return call signature of current function for context at point."
   (interactive)
-  (nim-call-epc 'def
-                (lambda (sigs)
-                  (let ((sig (first sigs)))
-                    (when sig
-                      (nim-call-signature-format-minibuffer sig))))))
+  (when (derived-mode-p 'nim-mode)
+    (nim-call-epc 'def
+                  (lambda (sigs)
+                    (let ((sig (first sigs)))
+                      (when sig
+                        (nim-call-signature-format-minibuffer sig)))))))
 
 
 (defun nim-call-signature-format-minibuffer (sig)
@@ -1127,6 +1128,18 @@ hierarchy, starting from CURRENT-DIR"
         (args (substring (nim-epc-forth sig) 5)))
     (message "%s%s" (car (last (nim-epc-qualifiedPath sig))) args)))
 
+(defcustom nim-get-call-signatures-delay 1
+  "How long Nim-mode should wait before showing call signature")
+
+(defvar nim-call-signatures-timer nil
+  "A variable where nim-mode keeps timer for signatures")
+
+(defun nim-enable-call-signatures ()
+  "Enable call signatures"
+  (when nim-call-signatures-timer
+    (cancel-timer nim-call-signatures-timer))
+  (setq nim-call-signatures-timer
+        (run-with-idle-timer nim-get-call-signatures-delay t 'nim-call-signature)))
 
 ;; compilation error
 (eval-after-load 'compile
