@@ -996,7 +996,6 @@ The result is written into the buffer
 
 (defun nim-doc-buffer (element)
   "Displays documentation buffer with element contents"
-  (interactive)
   (let ((buf (get-buffer-create "*nim-doc*")))
     (with-current-buffer buf
       (view-mode -1)
@@ -1075,7 +1074,7 @@ can pass it to epc."
                                      (file-name-as-directory dirname))))
     (save-restriction
       (widen)
-      (write-region (point-min) (point-max) filename) nil 'foo)
+      (write-region (point-min) (point-max) filename nil 1))
     filename))
 
 ;; From http://stackoverflow.com/questions/14095189/walk-up-the-directory-tree
