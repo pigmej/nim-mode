@@ -7,7 +7,7 @@
 ;; Version: 0.2.0
 ;; Keywords: nim languages
 ;; Compatibility: GNU Emacs 24
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "24") (epc "0.1.1"))
 ;;
 ;; Taken over from James H. Fisher <jameshfisher@gmail.com>
 ;;
@@ -213,7 +213,7 @@ Magic functions."
                                     (or "proc" "method" "converter"
                                         "iterator" "template" "macro")
                                     symbol-end))
-      (symbol-name          . ,(rx (any letter ?_) (* (any word ?_))))
+      (symbol-name          . ,(rx (any letter ?_ ?–) (* (any word ?_ ?–))))
       (dec-number . ,(rx symbol-start
                          (1+ (in digit "_"))
                          (opt "." (in digit "_"))
