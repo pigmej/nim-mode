@@ -1099,7 +1099,7 @@ hierarchy, starting from CURRENT-DIR"
                 (file-name-directory (buffer-file-name))
                 ".*\.nim\.cfg")))
     (when main-file (concat
-                     (replace-regexp-in-string "\.nim\.cfg$" "" (first main-file))n
+                     (replace-regexp-in-string "\.nim\.cfg$" "" (first main-file))
                      ".nim"))))
 
 (defun nim-goto-sym ()
@@ -1124,12 +1124,21 @@ hierarchy, starting from CURRENT-DIR"
                       (nim-call-signature--format-minibuffer sigs))))))
 
 
+(defun nim-call-signature--propertize-params (params)
+  "Formats single params"
+  (mapcar
+   (lambda (x) (let* ((spl2 (split-string x ": "))
+                      (name (propertize (car spl2) 'face 'default))
+                      (type (propertize (cadr spl2) 'face 'font-lock-type-face)))
+                 (format "%s: %s" name type)))
+   (split-string params ", ")))
+
 (defun nim-call-signature--format-minibuffer-single (sig)
   "Formats single function signature to use in minibuffer"
-  ;; TODO: propertize params
   (let* ((sig-string (nim-epc-forth sig))
          (params (substring sig-string (+ 1 (search "(" sig-string)) (search ")" sig-string))))
-    (format "(%s)" params)))
+    (format "(%s)"
+            (mapconcat 'identity (nim-call-signature--propertize-params params) ", "))))
 
 
 (defun nim-call-signature--format-minibuffer (sigs)
