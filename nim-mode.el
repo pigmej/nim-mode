@@ -46,8 +46,10 @@
 ;;
 ;;; Code:
 
-(eval-and-compile
-  (require 'cl))
+;; (eval-and-compile
+;;   (require 'cl))
+
+(require 'cl-lib)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                Helpers                                     ;;
@@ -1097,7 +1099,7 @@ hierarchy, starting from CURRENT-DIR"
                 (file-name-directory (buffer-file-name))
                 ".*\.nim\.cfg")))
     (when main-file (concat
-                     (replace-regexp-in-string "\.nim\.cfg$" "" (first main-file))
+                     (replace-regexp-in-string "\.nim\.cfg$" "" (first main-file))n
                      ".nim"))))
 
 (defun nim-goto-sym ()
@@ -1118,15 +1120,25 @@ hierarchy, starting from CURRENT-DIR"
   (when (derived-mode-p 'nim-mode)
     (nim-call-epc 'def
                   (lambda (sigs)
-                    (let ((sig (first sigs)))
-                      (when sig
-                        (nim-call-signature-format-minibuffer sig)))))))
+                    (when sigs
+                      (nim-call-signature--format-minibuffer sigs))))))
 
 
-(defun nim-call-signature-format-minibuffer (sig)
-  (let ((name (car (last (nim-epc-qualifiedPath sig))))
-        (args (substring (nim-epc-forth sig) 5)))
-    (message "%s%s" (car (last (nim-epc-qualifiedPath sig))) args)))
+(defun nim-call-signature--format-minibuffer-single (sig)
+  "Formats single function signature to use in minibuffer"
+  ;; TODO: propertize params
+  (let* ((sig-string (nim-epc-forth sig))
+         (params (substring sig-string (+ 1 (search "(" sig-string)) (search ")" sig-string))))
+    (format "(%s)" params)))
+
+
+(defun nim-call-signature--format-minibuffer (sigs)
+  "Format callsignatures in minibuffer."
+  (message "%S" sigs)
+  (let* ((sig (first sigs))
+         (name (car (last (nim-epc-qualifiedPath sig))))
+         (props (mapcar 'nim-call-signature--format-minibuffer-single sigs)))
+    (message "%s: %s" (propertize name 'face 'font-lock-function-name-face) (mapconcat 'identity props " | "))))
 
 (defcustom nim-get-call-signatures-delay 1
   "How long Nim-mode should wait before showing call signature")
@@ -1136,6 +1148,7 @@ hierarchy, starting from CURRENT-DIR"
 
 (defun nim-enable-call-signatures ()
   "Enable call signatures"
+  (interactive)
   (when nim-call-signatures-timer
     (cancel-timer nim-call-signatures-timer))
   (setq nim-call-signatures-timer
