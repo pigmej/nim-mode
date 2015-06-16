@@ -1133,21 +1133,37 @@ hierarchy, starting from CURRENT-DIR"
                  (format "%s: %s" name type)))
    (split-string params ", ")))
 
-(defun nim-call-signature--format-minibuffer-single (sig)
-  "Formats single function signature to use in minibuffer"
-  (let* ((sig-string (nim-epc-forth sig))
-         (params (substring sig-string (+ 1 (search "(" sig-string)) (search ")" sig-string))))
-    (format "(%s)"
-            (mapconcat 'identity (nim-call-signature--propertize-params params) ", "))))
+(defun nim-call-signature--format-minibuffer-single (nim-type sig)
+  "Formats single sig details to use in minibuffer"
+  ;; TODO: apply nim-mode rules
+  (cond ((or (string-equal nim-type "skMethod")
+             (string-equal nim-type "skProc"))
+         (let* ((sig-string (nim-epc-forth sig))
+                (params (substring sig-string (+ 1 (search "(" sig-string)) (search ")" sig-string))))
+           (format "(%s)"
+                   (mapconcat 'identity (nim-call-signature--propertize-params params) ", "))))
+        (t "")))
+
+
+(defun nim-call-signature--format-minibuffer-name (nim-type sig)
+  "Formats single sig name to use in minibuffer"
+  (format "%s: %s"
+   (substring nim-type 2)
+   (cond ((or (string-equal nim-type "skMethod")
+              (string-equal nim-type "skProc"))
+          (propertize (cadr (nim-epc-qualifiedPath sig)) 'face 'font-lock-function-name-face))
+         ((string-equal nim-type "skType")
+          (propertize (nim-epc-forth sig) 'face 'font-lock-type-face))
+         (t (nim-epc-forth sig)))))
 
 
 (defun nim-call-signature--format-minibuffer (sigs)
   "Format callsignatures in minibuffer."
-  (message "%S" sigs)
   (let* ((sig (first sigs))
-         (name (car (last (nim-epc-qualifiedPath sig))))
-         (props (mapcar 'nim-call-signature--format-minibuffer-single sigs)))
-    (message "%s: %s" (propertize name 'face 'font-lock-function-name-face) (mapconcat 'identity props " | "))))
+         (nim-type (nim-epc-symkind sig))
+         (name (nim-call-signature--format-minibuffer-name nim-type sig))
+         (props (mapcar (lambda (x) (nim-call-signature--format-minibuffer-single nim-type x)) sigs)))
+    (message "%s %s" name (mapconcat 'identity props " | "))))
 
 (defcustom nim-get-call-signatures-delay 1
   "How long Nim-mode should wait before showing call signature")
@@ -1157,7 +1173,6 @@ hierarchy, starting from CURRENT-DIR"
 
 (defun nim-enable-call-signatures ()
   "Enable call signatures"
-  (interactive)
   (when nim-call-signatures-timer
     (cancel-timer nim-call-signatures-timer))
   (setq nim-call-signatures-timer
@@ -1176,3 +1191,6 @@ hierarchy, starting from CURRENT-DIR"
 (provide 'nim-mode)
 
 ;;; nim-mode.el ends here
+
+
+(setq exec-path (append exec-path '("/home/pigmej/Apps/Nim/bin")))
