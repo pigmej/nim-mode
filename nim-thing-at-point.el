@@ -64,8 +64,9 @@
   "A variable where nim-mode keeps timer for signatures")
 
 (defun nim-enable-thing-at-point ()
+  (interactive)
   "Enable call signatures"
-  (when nim-thing-at-points-timer
+  (when nim-thing-at-point-timer
     (cancel-timer nim-thing-at-point-timer))
   (setq nim-thing-at-point-timer
         (run-with-idle-timer nim-get-thing-at-point-delay t 'nim-thing-at-point)))
