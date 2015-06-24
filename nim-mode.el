@@ -46,10 +46,8 @@
 ;;
 ;;; Code:
 
-;; (eval-and-compile
-;;   (require 'cl))
-
-(require 'cl-lib)
+(eval-when-compile
+  (require 'cl))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                Helpers                                     ;;
@@ -407,7 +405,7 @@ Where status can be any of the following symbols:
                                      (back-to-indentation)
                                      (looking-at (nim-rx decl-block)))
                                    (memq (char-before) '(?: ?=))
-                                   (looking-back nim-indent-indenters)))
+                                   (looking-back nim-indent-indenters nil)))
                          (cond
                           ((= (char-before) ?:)
                            (nim-util-backward-stmt)
@@ -660,6 +658,18 @@ point is  not in between the indentation."
   (when (not (nim-indent-dedent-line))
     (backward-delete-char-untabify arg)))
 (put 'nim-indent-dedent-line-backspace 'delete-selection 'supersede)
+
+(defsubst nim-syntax-count-quotes (quote-char &optional point limit)
+  "Count number of quotes around point (max is 3).
+QUOTE-CHAR is the quote char to count.  Optional argument POINT is
+the point where scan starts (defaults to current point), and LIMIT
+is used to limit the scan."
+  (let ((i 0))
+    (while (and (< i 3)
+                (or (not limit) (< (+ point i) limit))
+                (eq (char-after (+ point i)) quote-char))
+      (setq i (1+ i)))
+    i))
 
 (defun nim-indent-region (start end)
   "Indent a nim region automagically.
@@ -926,6 +936,16 @@ You don't need to set this if the nim executable is inside your PATH."
   :type '(repeat string)
   :group 'nim)
 
+(defcustom nim-project-root-regex "\\(\.git\\|\.nim\.cfg\\|\.nimble\\)$"
+  "Regex to find project root directory."
+  :type 'string
+  :group 'nim)
+
+(defun nim-get-project-root ()
+  "Return project directory."
+  (file-name-directory
+   (nim-find-file-in-hierarchy (file-name-directory (buffer-file-name)) nim-project-root-regex)))
+
 (defun nim-compile-file-to-js (&optional callback)
   "Save current file and compiles it.
 Use the project directory, so it will work best with external
@@ -991,13 +1011,13 @@ The result is written into the buffer
                                  ("skConst" . "c")
                                  ("skResult" . "r")
                                  )
-  "Abbrevs for nim-mode (used by company)"
+  "Abbrevs for nim-mode (used by company)."
   :type 'assoc
   :group 'nim)
 
 
 (defun nim-doc-buffer (element)
-  "Displays documentation buffer with element contents"
+  "Displays documentation buffer with ELEMENT contents."
   (let ((buf (get-buffer-create "*nim-doc*")))
     (with-current-buffer buf
       (view-mode -1)
@@ -1022,11 +1042,11 @@ The result is written into the buffer
 (cl-defstruct nim-epc section symkind qualifiedPath filePath forth line column doc)
 (defun nim-parse-epc (list)
   ;; (message "%S" list)
-  (mapcar (lambda (sublist) (apply #'make-nim-epc
-                              (mapcan #'list nim-epc-order sublist)))
+  (cl-mapcar (lambda (sublist) (apply #'make-nim-epc
+                               (cl-mapcan #'list nim-epc-order sublist)))
           list))
 
-(setq nim-epc-processes-alist nil)
+(defvar nim-epc-processes-alist nil)
 
 (defun nim-find-or-create-epc ()
   "Get the epc responsible for the current buffer."
@@ -1045,7 +1065,7 @@ The result is written into the buffer
   "Call the nimsuggest process on point.
 
 Call the nimsuggest process responsible for the current buffer.
-All commands work with the current cursor position. METHOD can be
+All commands work with the current cursor position.  METHOD can be
 one of:
 
 sug: suggest a symbol
@@ -1079,28 +1099,22 @@ can pass it to epc."
       (write-region (point-min) (point-max) filename nil 1))
     filename))
 
-;; From http://stackoverflow.com/questions/14095189/walk-up-the-directory-tree
-
-(defun nim-parent-directory (dir)
-  (unless (equal "/" dir)
-    (file-name-directory (directory-file-name dir))))
-
-(defun nim-find-file-in-heirarchy (current-dir pattern)
+(defun nim-find-file-in-hierarchy (current-dir pattern)
   "Search for a file matching PATTERN upwards through the directory
 hierarchy, starting from CURRENT-DIR"
-  (let ((parent (nim-parent-directory (expand-file-name current-dir))))
-    (or (directory-files current-dir t pattern nil)
-      (when parent
-        (nim-find-file-in-heirarchy parent pattern)))))
+  (catch 'found
+    (locate-dominating-file
+     current-dir
+     (lambda (dir)
+       (let ((file (first (directory-files dir t pattern nil))))
+         (when file (throw 'found file)))))))
 
 (defun nim-find-project-main-file ()
   "Get the main file for the project."
-  (let ((main-file (nim-find-file-in-heirarchy
+  (let ((main-file (nim-find-file-in-hierarchy
                 (file-name-directory (buffer-file-name))
                 ".*\.nim\.cfg")))
-    (when main-file (concat
-                     (replace-regexp-in-string "\.nim\.cfg$" "" (first main-file))
-                     ".nim"))))
+    (when main-file (file-name-base main-file))))
 
 (defun nim-goto-sym ()
   "Go to the definition of the symbol currently under the cursor."
@@ -1116,9 +1130,10 @@ hierarchy, starting from CURRENT-DIR"
 ;; compilation error
 (eval-after-load 'compile
   '(progn
-     (add-to-list 'compilation-error-regexp-alist 'nim)
-     (add-to-list 'compilation-error-regexp-alist-alist
-                  '(nim "^\\s-*\\(.*\\)(\\([0-9]+\\),\\s-*\\([0-9]+\\))\\s-+\\(?:Error\\|\\(Hint\\)\\):" 1 2 3 (4)))))
+     (with-no-warnings
+       (add-to-list 'compilation-error-regexp-alist 'nim)
+       (add-to-list 'compilation-error-regexp-alist-alist
+                    '(nim "^\\s-*\\(.*\\)(\\([0-9]+\\),\\s-*\\([0-9]+\\))\\s-+\\(?:Error\\|\\(Hint\\)\\):" 1 2 3 (4))))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.nim\\'" . nim-mode))
