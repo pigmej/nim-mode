@@ -1141,6 +1141,3 @@ hierarchy, starting from CURRENT-DIR"
 (provide 'nim-mode)
 
 ;;; nim-mode.el ends here
-
-
-(setq exec-path (append exec-path '("/home/pigmej/Apps/Nim/bin")))
