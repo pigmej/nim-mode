@@ -58,23 +58,37 @@
 
 (defun nim-thing-at-point--format-minibuffer (sigs)
   "Format callsignatures in minibuffer."
-  (let* ((sig (first sigs))
-         (info (nim-thing-at-point-buffer (nim-epc-forth sig))))
-    ;; (message "%S" info)
-    (message "%s: %s" (nim-epc-symkind sig) info)))
+  ;; (let* ((sig (first sigs))
+  ;;        (info (nim-thing-at-point-buffer (nim-epc-forth sig))))
+  ;;   ;; (message "%S" info)
+  ;;   (message "%s: %s" (nim-epc-symkind sig) info)))
+  (nim-thing-at-point-buffer sigs))
 
 
-(defun nim-thing-at-point-buffer (element)
+(defun nim-thing-at-point-buffer (sigs)
   "Interts element to buffer to apply nim-mode color rules.
    then returns buffer-string"
   ;;; TODO: create buffer first, apply modes first
   ;;; FIXME: for some reason, contents are not propertized
-  (let ((buf (get-buffer-create "*nim-thing-at-point*")))
+  (let* ((sig (first sigs))
+        (element (nim-epc-forth sig))
+        (buf (get-buffer-create "*nim-thing-at-point*")))
     (with-current-buffer buf
+      ;; (view-mode 1)  ;; debug only
       (nim-mode)
+      ;; (font-lock-unfontify-buffer)
       (erase-buffer)
       (insert element)
-      (buffer-string))))
+      ;; (message (buffer-string))
+      (font-lock-fontify-buffer)
+      (deferred:$  ;;; hack
+        (deferred:wait 10) ; 1000msec
+        (deferred:nextc it
+          (lambda (x)
+            (with-current-buffer (get-buffer "*nim-thing-at-point*")
+              (message (buffer-string))))))
+      ;; )
+)))
 
 
 (defcustom nim-get-thing-at-point-delay 1
