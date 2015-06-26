@@ -4,6 +4,7 @@
 (require 'cl-lib)
 (require 'nim-mode)
 
+
 (defun nim-thing-at-point ()
   "Return call signature of current function for context at point."
   (interactive)
@@ -16,7 +17,7 @@
 
 (defun nim-thing-at-point--format-minibuffer (sigs)
   "Format callsignatures in minibuffer."
-  (let ((info (mapcar (lambda (x) (format "%s: %s" (nim-epc-symkind x)(nim-thing-at-point-buffer x))) sigs)))
+  (let ((info (mapcar (lambda (x) (format "%s: %s" (substring (nim-epc-symkind x) 2)(nim-thing-at-point-buffer x))) sigs)))
     (message (mapconcat 'identity info " | "))))
 
 
