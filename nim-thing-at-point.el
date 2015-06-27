@@ -1,8 +1,23 @@
 ;;; nim-thing-at-point.el --- 'thing-at-point' for nim-mode
 ;;; Code:
 
+
 (require 'cl-lib)
 (require 'nim-mode)
+
+
+(defcustom nim-get-thing-at-point-delay 1
+  "How long Nim-mode should wait before showing call signature"
+  :type 'integer
+  :group 'nim)
+
+(defcustom nim-get-thing-at-point-formatter 'nim-thing-at-point-buffer
+  "Formatter function to apply on thing-at-point"
+  :type 'function
+  :group 'nim)
+
+(defvar nim-thing-at-point-timer nil
+  "A variable where nim-mode keeps timer for signatures")
 
 
 (defun nim-thing-at-point ()
@@ -17,7 +32,7 @@
 
 (defun nim-thing-at-point--format-minibuffer (sigs)
   "Format callsignatures in minibuffer."
-  (let ((info (mapcar (lambda (x) (format "%s: %s" (substring (nim-epc-symkind x) 2)(nim-thing-at-point-buffer x))) sigs)))
+  (let ((info (mapcar (lambda (x) (format "%s: %s" (substring (nim-epc-symkind x) 2)(funcall nim-get-thing-at-point-formatter x))) sigs)))
     (message (mapconcat 'identity info " | "))))
 
 
@@ -34,12 +49,9 @@
       (font-lock-default-fontify-buffer)
       (buffer-string))))
 
-
-(defcustom nim-get-thing-at-point-delay 1
-  "How long Nim-mode should wait before showing call signature")
-
-(defvar nim-thing-at-point-timer nil
-  "A variable where nim-mode keeps timer for signatures")
+(defun nim-thing-at-point-plain (sig)
+  "Returns plain thing-at-point"
+  (nim-epc-forth sig))
 
 (defun nim-enable-thing-at-point ()
   "Starts timer for thing-at-point features "
